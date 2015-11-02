@@ -10,6 +10,8 @@ import Foundation
 
 struct StudentInformation {
     
+    static var studentsInformation: [StudentInformation] = [StudentInformation]()
+    
     var uniqueKey: String!
     var firstName: String!
     var lastName: String!

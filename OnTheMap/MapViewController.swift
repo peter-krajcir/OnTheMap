@@ -13,8 +13,6 @@ class MapViewController: UIViewController, MKMapViewDelegate {
 
     @IBOutlet weak var mapView: MKMapView!
     
-    var studentsInformation: [StudentInformation] = [StudentInformation]()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -33,7 +31,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                 if success {
                     self.dismissViewControllerAnimated(true, completion: nil)
                 } else {
-                    print(errorString)
+                    self.displayError(errorString)
                 }
             })
         }
@@ -42,7 +40,8 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     func loadAnnotations() {
         UdacityClient.sharedInstance().getStudentsInformation { studentsInformation, error in
             if let studentsInformation = studentsInformation {
-                self.studentsInformation = studentsInformation
+                
+                StudentInformation.studentsInformation = studentsInformation
                 
                 var annotations = [MKPointAnnotation]()
                 
@@ -63,7 +62,9 @@ class MapViewController: UIViewController, MKMapViewDelegate {
                     self.mapView.addAnnotations(annotations)
                 }
             } else {
-                print(error)
+                dispatch_async(dispatch_get_main_queue()) {
+                    self.displayError(error)
+                }
             }
         }
     }
@@ -77,6 +78,16 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     func refreshAnnotations() {
         removeAnnotations()
         loadAnnotations()
+    }
+    
+    func displayError(errorString: String?) {
+        guard let errorString = errorString else {
+            return
+        }
+        
+        let myAlert = UIAlertController(title: errorString, message: nil, preferredStyle: UIAlertControllerStyle.Alert)
+        myAlert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.Default, handler: nil))
+        self.presentViewController(myAlert, animated: true, completion: nil)
     }
     
     // MARK: - MapViewDelegate
@@ -101,7 +112,7 @@ class MapViewController: UIViewController, MKMapViewDelegate {
     func mapView(mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
         if control == view.rightCalloutAccessoryView {
             guard let url = view.annotation?.subtitle else {
-                print("empty url")
+                displayError("URL is empty for the selected point")
                 return
             }
             

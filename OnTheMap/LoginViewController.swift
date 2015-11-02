@@ -13,6 +13,7 @@ class LoginViewController: UIViewController {
     @IBOutlet weak var emailTextField: UITextField!
     @IBOutlet weak var passwordTextField: UITextField!
     @IBOutlet weak var errorMessageLabel: UILabel!
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,29 +35,42 @@ class LoginViewController: UIViewController {
 
     func displayError(errorString: String?) {
         dispatch_async(dispatch_get_main_queue(), {
+            let myAlert = UIAlertController(title: errorString, message: nil, preferredStyle: UIAlertControllerStyle.Alert)
+            myAlert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.Default, handler: nil))
+            self.presentViewController(myAlert, animated: true, completion: nil)
+            
             if let errorString = errorString {
                 self.errorMessageLabel.text = errorString
             }
+            let animation = CABasicAnimation(keyPath: "position")
+            animation.duration = 0.07
+            animation.repeatCount = 4
+            animation.autoreverses = true
+            animation.fromValue = NSValue(CGPoint: CGPointMake(self.errorMessageLabel.center.x - 10, self.errorMessageLabel.center.y))
+            animation.toValue = NSValue(CGPoint: CGPointMake(self.errorMessageLabel.center.x + 10, self.errorMessageLabel.center.y))
+            self.errorMessageLabel.layer.addAnimation(animation, forKey: "position")
         })
     }
     
     @IBAction func doLogin(sender: AnyObject) {
         guard let email = emailTextField?.text where emailTextField.text != "" else {
-            print("empty email")
+            self.displayError("Email field can't be empty")
             return
         }
         
         guard let password = passwordTextField?.text where passwordTextField.text != "" else {
-            print("empty password")
+            self.displayError("Password field can't be empty")
             return
         }
-        
+        activityIndicator.startAnimating()
         UdacityClient.sharedInstance().createSessionForCredentials(email, password: password) { (success, errorString) in
             dispatch_async(dispatch_get_main_queue(), {
-                if let errorString = errorString {
-                    self.errorMessageLabel.text = errorString
-                }
+                self.activityIndicator.stopAnimating()
             })
+            if let errorString = errorString {
+                self.displayError(errorString)
+                return
+            }
             if success {
                 UdacityClient.sharedInstance().getPublicUserData(UdacityClient.sharedInstance().accountKey) { (success, errorString) in
                     if success {

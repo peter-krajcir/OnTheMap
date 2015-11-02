@@ -9,8 +9,6 @@
 import UIKit
 
 class ListViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
-
-    var studentsInformation: [StudentInformation] = [StudentInformation]()
     
     @IBOutlet weak var studentsTableView: UITableView!
     
@@ -20,10 +18,12 @@ class ListViewController: UIViewController, UITableViewDelegate, UITableViewData
 
     @IBAction func logout(sender: AnyObject) {
         UdacityClient.sharedInstance().removeSession{ success, errorString in
-            if success {
-                self.dismissViewControllerAnimated(true, completion: nil)
-            } else {
-                print(errorString)
+            dispatch_async(dispatch_get_main_queue()) {
+                if success {
+                    self.dismissViewControllerAnimated(true, completion: nil)
+                } else {
+                    self.displayError(errorString)
+                }
             }
         }
     }
@@ -38,15 +38,26 @@ class ListViewController: UIViewController, UITableViewDelegate, UITableViewData
         UdacityClient.sharedInstance().getStudentsInformation { studentsInformation, error in
             dispatch_async(dispatch_get_main_queue(), {
                 if let studentsInformation = studentsInformation {
-                    self.studentsInformation = studentsInformation
+                    
+                    StudentInformation.studentsInformation = studentsInformation
                     dispatch_async(dispatch_get_main_queue()) {
                         self.studentsTableView.reloadData()
                     }
                 } else {
-                    print(error)
+                    self.displayError(error)
                 }
             })
         }
+    }
+    
+    func displayError(errorString: String?) {
+        guard let errorString = errorString else {
+            return
+        }
+        
+        let myAlert = UIAlertController(title: errorString, message: nil, preferredStyle: UIAlertControllerStyle.Alert)
+        myAlert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.Default, handler: nil))
+        self.presentViewController(myAlert, animated: true, completion: nil)
     }
     
 // MARK: TableViewDelegate, TableViewDataSource
@@ -56,13 +67,13 @@ class ListViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
     
     func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return studentsInformation.count
+        return StudentInformation.studentsInformation.count
     }
     
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("StudentsInformationTableViewCell") as UITableViewCell!
         
-        let student = studentsInformation[indexPath.row]
+        let student = StudentInformation.studentsInformation[indexPath.row]
         
         cell.textLabel!.text = "\(student.firstName) \(student.lastName)"
         // cell.detailTextLabel!.text = student.mediaURL
@@ -73,17 +84,17 @@ class ListViewController: UIViewController, UITableViewDelegate, UITableViewData
     }
 
     func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
-        let selectedStudent = studentsInformation[indexPath.row]
+        let selectedStudent = StudentInformation.studentsInformation[indexPath.row]
         
         guard let url = selectedStudent.mediaURL else {
-            print("empty url")
+            displayError("URL is empty for the selected row.")
             return
         }
         
         let trimmedUrl = url.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceCharacterSet())
         
         guard let nsurl = NSURL(string: trimmedUrl) else {
-            print("invalid url")
+            displayError("URL is invalid.")
             return
         }
         

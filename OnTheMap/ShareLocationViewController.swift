@@ -24,6 +24,33 @@ class ShareLocationViewController: UIViewController, UITextFieldDelegate {
         self.presentViewController(myAlert, animated: true, completion: nil)
     }
     
+    func validateURLfromTextField(url: String) -> Bool {
+        if url == "Enter a Link to Share Here" || url == "" {
+            displayMessage("You must type an url", okAction: nil)
+            return false
+        }
+        
+        if !(url.hasPrefix("http://") || url.hasPrefix("https://")) {
+            displayMessage("Your url must start with http(s)://", okAction: nil)
+            return false
+        }
+        return true
+    }
+    
+    @IBAction func previewURLButtonPressed(sender: AnyObject) {
+        let url = urlTextField.text!.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceCharacterSet())
+        let isValidUrl = validateURLfromTextField(url)
+        
+        if isValidUrl {
+            guard let nsurl = NSURL(string: url) else {
+                displayMessage("URL is invalid.", okAction: nil)
+                return
+            }
+            
+            UIApplication.sharedApplication().openURL(nsurl)
+        }
+    }
+
     func completePosting() {
         displayMessage("Your information has been successfully posted!") { (alertAction) in
             dispatch_async(dispatch_get_main_queue(), {
@@ -34,29 +61,26 @@ class ShareLocationViewController: UIViewController, UITextFieldDelegate {
     
     @IBAction func submitButtonPressed(sender: AnyObject) {
         let url = urlTextField.text!.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceCharacterSet())
+        let isValidUrl = validateURLfromTextField(url)
         
-        if url == "Enter a Link to Share Here" || url == "" {
-            displayMessage("You must type an url", okAction: nil)
-            return
-        }
-        
-        if !(url.hasPrefix("http://") || url.hasPrefix("https://")) {
-            displayMessage("Your url must start with http(s)://", okAction: nil)
-            return
-        }
-        
-        studentPin.url = urlTextField!.text
-        
-        activityIndicator.startAnimating()
-        UdacityClient.sharedInstance().postStudentLocation(studentPin) { success, errorString in
-            dispatch_async(dispatch_get_main_queue(), {
-                self.activityIndicator.stopAnimating()
-                if success {
-                    self.completePosting()
-                } else {
-                    self.displayMessage(errorString, okAction: nil)
-                }
-            })
+        if isValidUrl {
+            guard let _ = NSURL(string: url) else {
+                displayMessage("URL is invalid.", okAction: nil)
+                return
+            }
+            studentPin.url = urlTextField!.text
+            
+            activityIndicator.startAnimating()
+            UdacityClient.sharedInstance().postStudentLocation(studentPin) { success, errorString in
+                dispatch_async(dispatch_get_main_queue(), {
+                    self.activityIndicator.stopAnimating()
+                    if success {
+                        self.completePosting()
+                    } else {
+                        self.displayMessage(errorString, okAction: nil)
+                    }
+                })
+            }
         }
     }
     
