@@ -276,11 +276,13 @@ class UdacityClient: NSObject {
                 parsedResult = try NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments)
             } catch {
                 print("Could not parse the data as JSON: '\(data)'")
+                callback(studentsInformation: nil, errorString: "Can't download students' information (Wrong response from server")
                 return
             }
             
             guard let results = parsedResult["results"] as? [[String: AnyObject]] else {
                 print("Can't find key 'results' in \(parsedResult)")
+                callback(studentsInformation: nil, errorString: "Can't download students' information (Wrong response from server")
                 return
             }
             
